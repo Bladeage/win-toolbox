@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Lint (PSScriptAnalyzer, PS 5.1 + 7 syntax)
+        shell: pwsh
+        run: |
+          $results = @("./src", "./build.ps1") | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 }
+          $results | Format-Table -AutoSize | Out-String -Width 200 | Write-Host
+          if ($results) { exit 1 }
+
+      - name: Build dist/
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Parse dist/ (syntax check)
+        shell: pwsh
+        run: |
+          $bad = $false
+          Get-ChildItem dist/*.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors) { $bad = $true; Write-Host "$($_.Name):"; $errors | Out-String | Write-Host }
+          }
+          if ($bad) { exit 1 }
+
+      - name: dist/ is committed and up to date
+        run: git diff --exit-code -- dist
+
+      - name: Smoke test (pwsh, mocked Windows pieces)
+        shell: pwsh
+        run: ./tests/smoke.ps1
+
+  parse-ps51:
+    # Real Windows PowerShell 5.1 parser - catches syntax that only PS 7 accepts.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse dist/ with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion
+          $bad = $false
+          Get-ChildItem dist/*.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors) { $bad = $true; Write-Host "$($_.Name):"; $errors | Out-String | Write-Host }
+          }
+          if ($bad) { exit 1 }
+
+      - name: Smoke test (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          .\tests\smoke.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }

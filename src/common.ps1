@@ -1,0 +1,156 @@
+# ---------------------------------------------------------------------------
+# common.ps1 - shared helpers for every win-toolbox script.
+# Must stay Windows PowerShell 5.1 compatible (no ternary, no ??, no classes).
+# ---------------------------------------------------------------------------
+
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is much faster without the progress bar
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+# Upstream URLs of third-party scripts/binaries - the single place to change them.
+$Urls = @{
+    AdwCleaner     = 'https://adwcleaner.malwarebytes.com/adwcleaner?channel=release'
+    WinGetInstall  = 'https://asheroto.com/winget'          # asheroto/winget-install
+    MAS            = 'https://get.activated.win'            # Microsoft Activation Scripts (massgrave)
+    OfficeToolPlus = 'https://officetool.plus'              # serves a .ps1 to PowerShell user agents
+    WinUtil        = 'https://christitus.com/win'           # Chris Titus Tech WinUtil
+    WinScript      = 'https://winscript.cc/irm'             # flick9000/winscript
+}
+
+# ---- output ---------------------------------------------------------------
+
+function Write-Title {
+    param([string]$Text)
+    Write-Host ''
+    Write-Host "== $Text ==" -ForegroundColor Cyan
+}
+function Write-Step { param([string]$Text) Write-Host "-> $Text" -ForegroundColor White;  Write-LogLine "STEP $Text" }
+function Write-Ok   { param([string]$Text) Write-Host "   $Text" -ForegroundColor Green;  Write-LogLine "OK   $Text" }
+function Write-Warn { param([string]$Text) Write-Host "   $Text" -ForegroundColor Yellow; Write-LogLine "WARN $Text" }
+function Write-Fail { param([string]$Text) Write-Host "   $Text" -ForegroundColor Red;    Write-LogLine "FAIL $Text" }
+
+function Read-MenuLine {
+    # Line input seam - tests/smoke.ps1 replaces this to feed scripted input.
+    param([string]$Prompt = '  Input')
+    return (Read-Host $Prompt).Trim()
+}
+
+function Wait-AnyKey {
+    param([string]$Prompt = 'Press any key to continue...')
+    Write-Host ''
+    Write-Host $Prompt -ForegroundColor DarkGray
+    try { $null = [Console]::ReadKey($true) } catch { $null = Read-Host }
+}
+
+function Confirm-Action {
+    param([Parameter(Mandatory)][string]$Question)
+    $answer = Read-Host "$Question [y/N]"
+    return ($answer -match '^(y|yes)$')
+}
+
+# ---- environment ----------------------------------------------------------
+
+function Test-Command {
+    param([Parameter(Mandatory)][string]$Name)
+    return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+function Test-IsAdmin {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    return ([Security.Principal.WindowsPrincipal]$identity).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Invoke-Elevated {
+    <#
+    .SYNOPSIS
+        Re-launches the current entry point with administrator rights.
+    .DESCRIPTION
+        Works for both execution styles: from a file (re-runs the file) and from
+        `irm <url> | iex` (re-runs the irm|iex one-liner using $SelfUrl).
+        Returns $true when a new elevated process was started - the caller should
+        `return` in that case. Returns $false when already elevated.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$SelfUrl,
+        [string]$Arguments = ''
+    )
+    if (Test-IsAdmin) { return $false }
+
+    Write-Warn 'Administrator rights are required - requesting elevation (UAC prompt)...'
+    $hostExe = (Get-Process -Id $PID).Path
+    if (-not $hostExe) { $hostExe = 'powershell.exe' }
+
+    if ($PSCommandPath) {
+        $command = "& '$PSCommandPath' $Arguments"
+    } else {
+        $command = "irm '$SelfUrl' | iex"
+    }
+    Start-Process -FilePath $hostExe -Verb RunAs -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command)
+    return $true
+}
+
+function Update-SessionPath {
+    # Pick up PATH changes made by installers (e.g. winget) without opening a new shell.
+    $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $user = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = "$machine;$user"
+}
+
+# ---- network --------------------------------------------------------------
+
+function Get-RemoteFile {
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [Parameter(Mandatory)][string]$OutFile,
+        [int]$Retries = 3
+    )
+    for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing
+            if ((Get-Item $OutFile).Length -gt 0) { return }
+            throw 'downloaded file is empty'
+        } catch {
+            if ($attempt -ge $Retries) { throw "Download failed after $Retries attempts: $Uri ($_)" }
+            Write-Warn "Download attempt $attempt failed ($_), retrying..."
+            Start-Sleep -Seconds (2 * $attempt)
+        }
+    }
+}
+
+function Invoke-RemoteScript {
+    <# Fetches a remote PowerShell script and runs it in the current session (irm | iex). #>
+    param(
+        [Parameter(Mandatory)][string]$Url,
+        [string]$Name = $Url
+    )
+    Write-Step "Fetching $Name from $Url ..."
+    $code = Invoke-RestMethod -Uri $Url -UseBasicParsing
+    Invoke-Expression $code
+}
+
+# ---- logging ----------------------------------------------------------------
+
+$LogState = @{ Path = $null }
+
+function Start-Log {
+    <# Starts a per-run log file under %TEMP%\win-toolbox\<name>_<host>_<stamp>.log. Write-Step/Ok/Warn/Fail append to it. #>
+    param([Parameter(Mandatory)][string]$Name)
+    $dir = Join-Path ([IO.Path]::GetTempPath()) 'win-toolbox'
+    try {
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $LogState.Path = Join-Path $dir ("{0}_{1}_{2}.log" -f $Name, $env:COMPUTERNAME, $stamp)
+        Set-Content -LiteralPath $LogState.Path -Value ("win-toolbox {0} - {1} - {2}" -f $Name, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $env:COMPUTERNAME) -Encoding UTF8
+    } catch {
+        $LogState.Path = $null
+        Write-Warn "No writable log location - logging to screen only ($_)."
+    }
+    return $LogState.Path
+}
+
+function Write-LogLine {
+    <# Appends a line to the current log file (no console output). #>
+    param([string]$Text)
+    if (-not $LogState.Path) { return }
+    try { Add-Content -LiteralPath $LogState.Path -Value ("{0}  {1}" -f (Get-Date -Format 'HH:mm:ss'), $Text) -Encoding UTF8 } catch { $null = $_ }
+}
