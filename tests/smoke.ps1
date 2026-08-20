@@ -188,4 +188,4 @@ foreach ($f in Get-ChildItem (Join-Path $root 'dist') -Filter *.ps1) {
 
 Write-Host ''
 Write-Host ("{0} passed, {1} failed" -f $script:Pass, $script:Fail) -ForegroundColor $(if ($script:Fail) { 'Red' } else { 'Green' })
-if ($script:Fail) { exit 1 }
+if ($script:Fail) { exit 1 } else { exit 0 }   # explicit: mocks leave $LASTEXITCODE non-zero, CI pwsh shell would propagate it
