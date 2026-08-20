@@ -22,8 +22,10 @@ Betriebsmodus: **Ship-Loop** (PR-Flow, CI grün, Merge → Raw-URLs sind sofort 
    einer Windows-VM/-Kiste vor dem Umbiegen von Redirects.
 
 ## Auslieferung
-- Kurz-URLs `menu.` / `adwcleaner.` / `update.` / `redist.geyer.zone` sind **Cloudflare-301-Redirects**
-  (Fabian pflegt sie im CF-Dashboard) → Ziel: `https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/<datei>`.
+- Kurz-URLs `menu.` / `adwcleaner.` / `update.` / `redist.geyer.zone` (+ `activate.`/`office.`/`winutil.`/`winscript.`
+  direkt auf Upstream) sind **301-Redirection-Hosts im Nginx Proxy Manager auf `hp`** (Cloudflare nur davor;
+  Ändern = NPM-UI oder -API auf hp, SSH braucht FIDO-Touch → Fabian) → Ziel:
+  `https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/<datei>`.
 - Merge auf `main` = Deploy. Kein weiterer Schritt. Deshalb: nie direkt auf `main` committen.
 
 ## Herkunft (archiviert)

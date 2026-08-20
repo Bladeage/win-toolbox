@@ -16,6 +16,7 @@ irm https://menu.geyer.zone | iex
 | 6 | WinUtil | [Chris Titus Tech's Windows Utility](https://christitus.com/win) |
 | 7 | WinScript | [flick9000/winscript](https://github.com/flick9000/winscript) |
 | 8 | AdwCleaner | Downloads, runs and removes [Malwarebytes AdwCleaner](https://www.malwarebytes.com/adwcleaner) |
+| 9 | Harden System Security | [HotCakeX's hardening app](https://github.com/HotCakeX/Harden-Windows-Security/wiki/Harden-System-Security) from the Microsoft Store (Windows 11 22H2+) |
 
 `G` switches to an `Out-GridView` picker, `Q`/`Esc` quits. The menu asks for elevation (UAC) when
 needed and re-launches itself. Works in Windows PowerShell 5.1 and PowerShell 7.
@@ -32,7 +33,8 @@ Every tool is also published as a standalone script with the same shared helpers
 | Gaming redists | `irm https://redist.geyer.zone \| iex` | `dist/redists.ps1` |
 
 From a local checkout you can also run a tool directly: `.\dist\win-toolbox.ps1 -Tool update`
-(`activate`, `update`, `winget`, `redists`, `office`, `winutil`, `winscript`, `adwcleaner`).
+(`activate`, `update`, `winget`, `redists`, `office`, `winutil`, `winscript`, `adwcleaner`, `harden`).
+`Install-GamingRedists -Force` reinstalls everything (winget `--force`), `-Group 'Visual C++','.NET'` limits the set.
 
 ## How it is built
 
@@ -44,7 +46,7 @@ build.ps1               concatenates src/ into the self-contained files in dist/
 VERSION                 version string baked into dist/ (bump on release)
 ```
 
-`dist/` is committed on purpose — the short URLs point straight at the raw files. After editing
+`dist/` is committed on purpose — the short URLs (Nginx Proxy Manager 301 redirects) point straight at the raw files. After editing
 `src/`, run `./build.ps1` (needs `pwsh`, works on Linux/macOS/Windows) and commit the result.
 CI lints `src/` with PSScriptAnalyzer (PS 5.1 + 7 syntax), rebuilds, parses `dist/` with both
 PowerShell 7 and Windows PowerShell 5.1, and fails if `dist/` is stale.

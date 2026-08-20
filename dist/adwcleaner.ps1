@@ -152,10 +152,19 @@ function Install-WinGet {
 }
 
 function Install-WinGetPackage {
-    <# Installs one package by exact ID, silently. Returns $true on success / already installed. #>
+    <#
+    .SYNOPSIS
+        Installs one package by exact ID, silently. Returns $true on success / already installed.
+    .PARAMETER Force
+        Pass --force to winget: (re)install even when the package is already present.
+    .PARAMETER Source
+        Restrict to a winget source, e.g. 'msstore'.
+    #>
     param(
         [Parameter(Mandatory)][string]$Id,
-        [string]$Label = $Id
+        [string]$Label = $Id,
+        [string]$Source,
+        [switch]$Force
     )
     Write-Host ("   {0,-45} " -f $Label) -NoNewline
     $wingetArgs = @(
@@ -163,6 +172,8 @@ function Install-WinGetPackage {
         '--accept-package-agreements', '--accept-source-agreements',
         '--silent', '--disable-interactivity'
     )
+    if ($Source) { $wingetArgs += @('--source', $Source) }
+    if ($Force) { $wingetArgs += '--force' }
     $null = & winget @wingetArgs 2>&1
     $code = $LASTEXITCODE
     switch ($code) {

@@ -10,10 +10,12 @@ $MenuItems = @(
     @{ Key = '5'; Id = 'office';     Name = 'Office Tool Plus';           Description = 'Download / deploy Microsoft Office';            Action = { Invoke-OfficeToolPlus } },
     @{ Key = '6'; Id = 'winutil';    Name = 'WinUtil';                    Description = "Chris Titus Tech's Windows utility";            Action = { Invoke-WinUtil } },
     @{ Key = '7'; Id = 'winscript';  Name = 'WinScript';                  Description = 'flick9000/winscript - debloat & privacy';        Action = { Invoke-WinScript } },
-    @{ Key = '8'; Id = 'adwcleaner'; Name = 'AdwCleaner';                 Description = 'Malwarebytes adware cleaner';                    Action = { Invoke-AdwCleaner } }
+    @{ Key = '8'; Id = 'adwcleaner'; Name = 'AdwCleaner';                 Description = 'Malwarebytes adware cleaner';                    Action = { Invoke-AdwCleaner } },
+    @{ Key = '9'; Id = 'harden';     Name = 'Harden System Security';     Description = 'HotCakeX hardening app (Win 11 22H2+, MS Store)';  Action = { Install-HardenSystemSecurity } }
 )
 
 function Show-Banner {
+    try { $Host.UI.RawUI.WindowTitle = "win-toolbox v$ToolboxVersion" } catch { Write-Verbose "cannot set window title: $_" }
     Clear-Host
     Write-Host ''
     Write-Host '  win-toolbox' -ForegroundColor Cyan -NoNewline

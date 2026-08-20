@@ -18,6 +18,7 @@ $RedistPackages = @(
     @{ Group = 'Visual C++'; Id = 'Microsoft.VCRedist.2013.x64' },
     @{ Group = 'Visual C++'; Id = 'Microsoft.VCRedist.2015+.x86' },
     @{ Group = 'Visual C++'; Id = 'Microsoft.VCRedist.2015+.x64' },
+    @{ Group = 'Visual C++'; Id = 'Microsoft.VCLibs.Desktop.14' },        # VCLibs for Store / Game Pass apps
     # --- .NET desktop runtimes ---
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.3_1' },
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.5' },
@@ -25,6 +26,7 @@ $RedistPackages = @(
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.7' },
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.8' },
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.9' },
+    @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.10' },
     # --- DirectX / XNA ---
     @{ Group = 'DirectX & XNA'; Id = 'Microsoft.DirectX' },
     @{ Group = 'DirectX & XNA'; Id = 'Microsoft.XNARedist' },
@@ -42,10 +44,16 @@ function Install-GamingRedists {
         Installs all Visual C++ / .NET runtimes, DirectX, XNA and a few common tools via winget.
     .PARAMETER Group
         Only install packages of the given group(s), e.g. -Group 'Visual C++','.NET'.
+    .PARAMETER Force
+        Reinstall packages that are already present (winget --force) - the old
+        "scorched earth" behaviour of the batch installer.
     .NOTES
         Requires an elevated shell. Installs WinGet first if it is missing.
     #>
-    param([string[]]$Group)
+    param(
+        [string[]]$Group,
+        [switch]$Force
+    )
 
     Write-Title 'PC Gaming Redistributables'
     if (-not (Test-IsAdmin)) { throw 'Administrator rights are required to install redistributables.' }
@@ -59,7 +67,7 @@ function Install-GamingRedists {
     foreach ($grp in ($packages | ForEach-Object { $_.Group } | Select-Object -Unique)) {
         Write-Step "$grp"
         foreach ($pkg in ($packages | Where-Object { $_.Group -eq $grp })) {
-            if (-not (Install-WinGetPackage -Id $pkg.Id)) { $failed += $pkg.Id }
+            if (-not (Install-WinGetPackage -Id $pkg.Id -Force:$Force)) { $failed += $pkg.Id }
         }
     }
 

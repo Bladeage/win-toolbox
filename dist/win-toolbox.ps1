@@ -152,10 +152,19 @@ function Install-WinGet {
 }
 
 function Install-WinGetPackage {
-    <# Installs one package by exact ID, silently. Returns $true on success / already installed. #>
+    <#
+    .SYNOPSIS
+        Installs one package by exact ID, silently. Returns $true on success / already installed.
+    .PARAMETER Force
+        Pass --force to winget: (re)install even when the package is already present.
+    .PARAMETER Source
+        Restrict to a winget source, e.g. 'msstore'.
+    #>
     param(
         [Parameter(Mandatory)][string]$Id,
-        [string]$Label = $Id
+        [string]$Label = $Id,
+        [string]$Source,
+        [switch]$Force
     )
     Write-Host ("   {0,-45} " -f $Label) -NoNewline
     $wingetArgs = @(
@@ -163,6 +172,8 @@ function Install-WinGetPackage {
         '--accept-package-agreements', '--accept-source-agreements',
         '--silent', '--disable-interactivity'
     )
+    if ($Source) { $wingetArgs += @('--source', $Source) }
+    if ($Force) { $wingetArgs += '--force' }
     $null = & winget @wingetArgs 2>&1
     $code = $LASTEXITCODE
     switch ($code) {
@@ -276,6 +287,7 @@ $RedistPackages = @(
     @{ Group = 'Visual C++'; Id = 'Microsoft.VCRedist.2013.x64' },
     @{ Group = 'Visual C++'; Id = 'Microsoft.VCRedist.2015+.x86' },
     @{ Group = 'Visual C++'; Id = 'Microsoft.VCRedist.2015+.x64' },
+    @{ Group = 'Visual C++'; Id = 'Microsoft.VCLibs.Desktop.14' },        # VCLibs for Store / Game Pass apps
     # --- .NET desktop runtimes ---
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.3_1' },
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.5' },
@@ -283,6 +295,7 @@ $RedistPackages = @(
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.7' },
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.8' },
     @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.9' },
+    @{ Group = '.NET'; Id = 'Microsoft.DotNet.DesktopRuntime.10' },
     # --- DirectX / XNA ---
     @{ Group = 'DirectX & XNA'; Id = 'Microsoft.DirectX' },
     @{ Group = 'DirectX & XNA'; Id = 'Microsoft.XNARedist' },
@@ -300,10 +313,16 @@ function Install-GamingRedists {
         Installs all Visual C++ / .NET runtimes, DirectX, XNA and a few common tools via winget.
     .PARAMETER Group
         Only install packages of the given group(s), e.g. -Group 'Visual C++','.NET'.
+    .PARAMETER Force
+        Reinstall packages that are already present (winget --force) - the old
+        "scorched earth" behaviour of the batch installer.
     .NOTES
         Requires an elevated shell. Installs WinGet first if it is missing.
     #>
-    param([string[]]$Group)
+    param(
+        [string[]]$Group,
+        [switch]$Force
+    )
 
     Write-Title 'PC Gaming Redistributables'
     if (-not (Test-IsAdmin)) { throw 'Administrator rights are required to install redistributables.' }
@@ -317,7 +336,7 @@ function Install-GamingRedists {
     foreach ($grp in ($packages | ForEach-Object { $_.Group } | Select-Object -Unique)) {
         Write-Step "$grp"
         foreach ($pkg in ($packages | Where-Object { $_.Group -eq $grp })) {
-            if (-not (Install-WinGetPackage -Id $pkg.Id)) { $failed += $pkg.Id }
+            if (-not (Install-WinGetPackage -Id $pkg.Id -Force:$Force)) { $failed += $pkg.Id }
         }
     }
 
@@ -368,6 +387,29 @@ function Invoke-WinUtil {
     Invoke-RemoteScript -Url $Urls.WinUtil -Name 'WinUtil'
 }
 
+function Install-HardenSystemSecurity {
+    <#
+    .SYNOPSIS
+        Installs HotCakeX's "Harden System Security" app (Microsoft Store) and starts it.
+    .NOTES
+        Successor of the deprecated Harden-Windows-Security-Module. Needs Windows 11 22H2+
+        and an elevated shell.
+    #>
+    Write-Title 'Harden System Security (HotCakeX)'
+    $build = [Environment]::OSVersion.Version.Build
+    if ($build -lt 22621) {
+        throw "Harden System Security needs Windows 11 22H2 or newer (this is build $build)."
+    }
+    if (-not (Test-IsAdmin)) { throw 'Administrator rights are required.' }
+    Install-WinGet
+    Write-Step 'Installing from the Microsoft Store via winget...'
+    if (Install-WinGetPackage -Id '9p7ggfl7dx57' -Label 'Harden System Security' -Source msstore) {
+        Write-Step 'Starting Harden System Security...'
+        Start-Process 'shell:AppsFolder\$((Get-StartApps | Where-Object Name -eq "Harden System Security" | Select-Object -First 1).AppID)' -ErrorAction SilentlyContinue
+        Write-Ok 'Done. If the app did not open, find "Harden System Security" in the Start menu.'
+    }
+}
+
 function Invoke-WinScript {
     <# flick9000/winscript - debloat, privacy, performance, app installer. #>
     Write-Title 'WinScript (flick9000)'
@@ -386,10 +428,12 @@ $MenuItems = @(
     @{ Key = '5'; Id = 'office';     Name = 'Office Tool Plus';           Description = 'Download / deploy Microsoft Office';            Action = { Invoke-OfficeToolPlus } },
     @{ Key = '6'; Id = 'winutil';    Name = 'WinUtil';                    Description = "Chris Titus Tech's Windows utility";            Action = { Invoke-WinUtil } },
     @{ Key = '7'; Id = 'winscript';  Name = 'WinScript';                  Description = 'flick9000/winscript - debloat & privacy';        Action = { Invoke-WinScript } },
-    @{ Key = '8'; Id = 'adwcleaner'; Name = 'AdwCleaner';                 Description = 'Malwarebytes adware cleaner';                    Action = { Invoke-AdwCleaner } }
+    @{ Key = '8'; Id = 'adwcleaner'; Name = 'AdwCleaner';                 Description = 'Malwarebytes adware cleaner';                    Action = { Invoke-AdwCleaner } },
+    @{ Key = '9'; Id = 'harden';     Name = 'Harden System Security';     Description = 'HotCakeX hardening app (Win 11 22H2+, MS Store)';  Action = { Install-HardenSystemSecurity } }
 )
 
 function Show-Banner {
+    try { $Host.UI.RawUI.WindowTitle = "win-toolbox v$ToolboxVersion" } catch { Write-Verbose "cannot set window title: $_" }
     Clear-Host
     Write-Host ''
     Write-Host '  win-toolbox' -ForegroundColor Cyan -NoNewline
