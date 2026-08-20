@@ -24,10 +24,10 @@ function Write-Title {
     Write-Host ''
     Write-Host "== $Text ==" -ForegroundColor Cyan
 }
-function Write-Step { param([string]$Text) Write-Host "-> $Text" -ForegroundColor White }
-function Write-Ok   { param([string]$Text) Write-Host "   $Text" -ForegroundColor Green }
-function Write-Warn { param([string]$Text) Write-Host "   $Text" -ForegroundColor Yellow }
-function Write-Fail { param([string]$Text) Write-Host "   $Text" -ForegroundColor Red }
+function Write-Step { param([string]$Text) Write-Host "-> $Text" -ForegroundColor White;  Write-LogLine "STEP $Text" }
+function Write-Ok   { param([string]$Text) Write-Host "   $Text" -ForegroundColor Green;  Write-LogLine "OK   $Text" }
+function Write-Warn { param([string]$Text) Write-Host "   $Text" -ForegroundColor Yellow; Write-LogLine "WARN $Text" }
+function Write-Fail { param([string]$Text) Write-Host "   $Text" -ForegroundColor Red;    Write-LogLine "FAIL $Text" }
 
 function Wait-AnyKey {
     param([string]$Prompt = 'Press any key to continue...')
@@ -122,54 +122,29 @@ function Invoke-RemoteScript {
     Invoke-Expression $code
 }
 
-# ---- winget ---------------------------------------------------------------
+# ---- logging ----------------------------------------------------------------
 
-function Install-WinGet {
-    <# Installs or repairs WinGet via asheroto's winget-install script. #>
-    param([switch]$Force)
-    Write-Title 'WinGet'
-    if ((Test-Command winget) -and -not $Force) {
-        Write-Ok "WinGet is already installed ($(& winget --version))."
-        return
+$LogState = @{ Path = $null }
+
+function Start-Log {
+    <# Starts a per-run log file under %TEMP%\win-toolbox\<name>_<host>_<stamp>.log. Write-Step/Ok/Warn/Fail append to it. #>
+    param([Parameter(Mandatory)][string]$Name)
+    $dir = Join-Path ([IO.Path]::GetTempPath()) 'win-toolbox'
+    try {
+        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $LogState.Path = Join-Path $dir ("{0}_{1}_{2}.log" -f $Name, $env:COMPUTERNAME, $stamp)
+        Set-Content -LiteralPath $LogState.Path -Value ("win-toolbox {0} - {1} - {2}" -f $Name, (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $env:COMPUTERNAME) -Encoding UTF8
+    } catch {
+        $LogState.Path = $null
+        Write-Warn "No writable log location - logging to screen only ($_)."
     }
-    Invoke-RemoteScript -Url $Urls.WinGetInstall -Name 'winget-install (asheroto)'
-    Update-SessionPath
-    if (-not (Test-Command winget)) {
-        throw 'WinGet is still not available in this session. Open a new terminal and try again.'
-    }
-    Write-Ok "WinGet ready ($(& winget --version))."
+    return $LogState.Path
 }
 
-function Install-WinGetPackage {
-    <#
-    .SYNOPSIS
-        Installs one package by exact ID, silently. Returns $true on success / already installed.
-    .PARAMETER Force
-        Pass --force to winget: (re)install even when the package is already present.
-    .PARAMETER Source
-        Restrict to a winget source, e.g. 'msstore'.
-    #>
-    param(
-        [Parameter(Mandatory)][string]$Id,
-        [string]$Label = $Id,
-        [string]$Source,
-        [switch]$Force
-    )
-    Write-Host ("   {0,-45} " -f $Label) -NoNewline
-    $wingetArgs = @(
-        'install', '--exact', '--id', $Id,
-        '--accept-package-agreements', '--accept-source-agreements',
-        '--silent', '--disable-interactivity'
-    )
-    if ($Source) { $wingetArgs += @('--source', $Source) }
-    if ($Force) { $wingetArgs += '--force' }
-    $null = & winget @wingetArgs 2>&1
-    $code = $LASTEXITCODE
-    switch ($code) {
-        0            { Write-Host 'installed' -ForegroundColor Green; return $true }
-        -1978335189  { Write-Host 'already installed' -ForegroundColor DarkGreen; return $true }   # 0x8A15002B UPDATE_NOT_APPLICABLE
-        -1978335135  { Write-Host 'already installed' -ForegroundColor DarkGreen; return $true }   # 0x8A150061 PACKAGE_ALREADY_INSTALLED
-        -1978335212  { Write-Host 'not found in winget' -ForegroundColor Yellow; return $false }   # 0x8A150014 NO_APPLICATIONS_FOUND
-        default      { Write-Host ("failed (0x{0:X8})" -f $code) -ForegroundColor Red; return $false }
-    }
+function Write-LogLine {
+    <# Appends a line to the current log file (no console output). #>
+    param([string]$Text)
+    if (-not $LogState.Path) { return }
+    try { Add-Content -LiteralPath $LogState.Path -Value ("{0}  {1}" -f (Get-Date -Format 'HH:mm:ss'), $Text) -Encoding UTF8 } catch { $null = $_ }
 }

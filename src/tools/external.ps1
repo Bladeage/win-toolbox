@@ -35,9 +35,9 @@ function Install-HardenSystemSecurity {
         throw "Harden System Security needs Windows 11 22H2 or newer (this is build $build)."
     }
     if (-not (Test-IsAdmin)) { throw 'Administrator rights are required.' }
-    Install-WinGet
     Write-Step 'Installing from the Microsoft Store via winget...'
-    if (Install-WinGetPackage -Id '9p7ggfl7dx57' -Label 'Harden System Security' -Source msstore) {
+    $r = Install-WinGetPackage -Id '9p7ggfl7dx57' -Name 'Harden System Security' -Source msstore
+    if ($r.Status -in 'Installed', 'Present', 'Upgraded') {
         Write-Step 'Starting Harden System Security...'
         Start-Process 'shell:AppsFolder\$((Get-StartApps | Where-Object Name -eq "Harden System Security" | Select-Object -First 1).AppID)' -ErrorAction SilentlyContinue
         Write-Ok 'Done. If the app did not open, find "Harden System Security" in the Start menu.'

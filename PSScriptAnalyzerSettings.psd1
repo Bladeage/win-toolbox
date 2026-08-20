@@ -4,7 +4,8 @@
         'PSAvoidUsingWriteHost',                         # interactive console tool - Write-Host is the point
         'PSAvoidUsingInvokeExpression',                  # irm | iex wrappers are the whole purpose
         'PSUseShouldProcessForStateChangingFunctions',   # Install-*/Invoke-* here are interactive, no -WhatIf story
-        'PSUseSingularNouns'                             # Install-GamingRedists, Install-WinGetPackage ...
+        'PSUseSingularNouns',                            # Install-WinGetPackage, Update-WinGetSources ...
+        'PSUseDeclaredVarsMoreThanAssignments'           # src/*.ps1 are concatenated: $Urls & co. are used across files
     )
     Rules        = @{
         PSUseCompatibleSyntax = @{

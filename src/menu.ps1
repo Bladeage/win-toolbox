@@ -6,7 +6,7 @@ $MenuItems = @(
     @{ Key = '1'; Id = 'activate';   Name = 'Activate Windows / Office';  Description = 'Microsoft Activation Scripts (massgrave.dev)'; Action = { Invoke-MAS } },
     @{ Key = '2'; Id = 'update';     Name = 'Windows Update';             Description = 'Install all pending updates (PSWindowsUpdate)';  Action = { Invoke-WindowsUpdate } },
     @{ Key = '3'; Id = 'winget';     Name = 'Install / repair WinGet';    Description = 'winget-install by asheroto';                     Action = { Install-WinGet -Force } },
-    @{ Key = '4'; Id = 'redists';    Name = 'Gaming redistributables';    Description = 'VC++, .NET, DirectX, XNA, 7zip, PowerShell, Terminal, Java'; Action = { Install-GamingRedists } },
+    @{ Key = '4'; Id = 'software';   Name = 'Software Setup';             Description = 'Profiles (Runtimes / Standard / Gaming / Technician) + 250-app catalog via winget'; Action = { Invoke-SoftwareSetup } },
     @{ Key = '5'; Id = 'office';     Name = 'Office Tool Plus';           Description = 'Download / deploy Microsoft Office';            Action = { Invoke-OfficeToolPlus } },
     @{ Key = '6'; Id = 'winutil';    Name = 'WinUtil';                    Description = "Chris Titus Tech's Windows utility";            Action = { Invoke-WinUtil } },
     @{ Key = '7'; Id = 'winscript';  Name = 'WinScript';                  Description = 'flick9000/winscript - debloat & privacy';        Action = { Invoke-WinScript } },
