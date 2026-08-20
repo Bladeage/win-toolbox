@@ -17,9 +17,12 @@ Betriebsmodus: **Ship-Loop** (PR-Flow, CI grün, Merge → Raw-URLs sind sofort 
 1. `src/` ändern → `./build.ps1` (lokal `pwsh` 7.6 vorhanden) → `dist/` mitcommitten.
 2. Lint lokal: `Invoke-ScriptAnalyzer -Path ./src -Recurse -Settings ./PSScriptAnalyzerSettings.psd1`
    (PSScriptAnalyzer ist im User-Scope installiert).
-3. Branch → PR → CI (lint, build, parse mit PS 7 **und** PS 5.1, dist-aktuell-Check) → Merge.
-4. **Nicht auf Linux testbar:** Elevation, winget, PSWindowsUpdate, ReadKey-Menü → Rauchtest auf
-   einer Windows-VM/-Kiste vor dem Umbiegen von Redirects.
+3. `pwsh ./tests/smoke.ps1` — Rauchtest: fährt das Menü mit Tasten-Queue durch, alle Tools mit gemocktem
+   winget/Start-Process/PSWindowsUpdate/Elevation (`Read-MenuKey` ist die Test-Naht). Läuft in CI auf Ubuntu
+   **und** echtem PS 5.1. Fabian arbeitet auf Linux — **dieser Test ist der Rauchtest**, es gibt keine Windows-Kiste.
+4. Branch → PR → CI (lint, build, parse PS 7 + 5.1, dist-aktuell-Check, smoke ×2) → Merge.
+5. Nicht durch Mocks abgedeckt (Restrisiko): echtes winget-Verhalten, UAC-Dialog, Out-GridView-Optik,
+   Verhalten der Fremdskripte (MAS, WinUtil, …).
 
 ## Auslieferung
 - Kurz-URLs `menu.` / `adwcleaner.` / `update.` / `redist.geyer.zone` (+ `activate.`/`office.`/`winutil.`/`winscript.`

@@ -35,6 +35,11 @@ function Show-TextMenu {
     Write-Host '  [G] Grid view    [Q] Quit' -ForegroundColor DarkGray
     Write-Host ''
     Write-Host '  Select: ' -NoNewline
+    return Read-MenuKey
+}
+
+function Read-MenuKey {
+    # Returns the pressed key as a one-character string ('Q' for Escape). Replaced by tests/smoke.ps1.
     $key = [Console]::ReadKey($true)
     if ($key.Key -eq 'Escape') { return 'Q' }
     return [string]$key.KeyChar

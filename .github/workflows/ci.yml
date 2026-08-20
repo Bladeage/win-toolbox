@@ -40,6 +40,10 @@ jobs:
       - name: dist/ is committed and up to date
         run: git diff --exit-code -- dist
 
+      - name: Smoke test (pwsh, mocked Windows pieces)
+        shell: pwsh
+        run: ./tests/smoke.ps1
+
   parse-ps51:
     # Real Windows PowerShell 5.1 parser - catches syntax that only PS 7 accepts.
     runs-on: windows-latest
@@ -56,3 +60,9 @@ jobs:
             if ($errors) { $bad = $true; Write-Host "$($_.Name):"; $errors | Out-String | Write-Host }
           }
           if ($bad) { exit 1 }
+
+      - name: Smoke test (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          .\tests\smoke.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }

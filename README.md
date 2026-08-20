@@ -49,7 +49,9 @@ VERSION                 version string baked into dist/ (bump on release)
 `dist/` is committed on purpose — the short URLs (Nginx Proxy Manager 301 redirects) point straight at the raw files. After editing
 `src/`, run `./build.ps1` (needs `pwsh`, works on Linux/macOS/Windows) and commit the result.
 CI lints `src/` with PSScriptAnalyzer (PS 5.1 + 7 syntax), rebuilds, parses `dist/` with both
-PowerShell 7 and Windows PowerShell 5.1, and fails if `dist/` is stale.
+PowerShell 7 and Windows PowerShell 5.1, fails if `dist/` is stale, and runs `tests/smoke.ps1`
+on both — a scripted walk through the menu and every tool with winget, Start-Process,
+PSWindowsUpdate and the UAC elevation mocked. Run it locally with `pwsh ./tests/smoke.ps1`.
 
 Each dist file is wrapped in `& { ... }`, so running it via `irm | iex` leaves no functions,
 variables or `$ErrorActionPreference` changes behind in your shell.
