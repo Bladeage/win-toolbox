@@ -7,6 +7,10 @@
     dist/adwcleaner.ps1    - AdwCleaner only
     dist/windows-update.ps1 - Windows Update only
     dist/software-setup.ps1 - Software Setup (profiles + catalog) only
+    dist/inventory.ps1     - Inventory only
+    dist/clean-traces.ps1  - Clean Traces only
+    dist/winget.ps1        - install/repair WinGet only
+    dist/harden.ps1        - Harden System Security only
     Every dist file is self-contained: common.ps1 + the needed tool(s) + a small entry block,
     wrapped in `& { }` so that running it via `irm | iex` leaves no variables, functions or
     preference changes behind in the caller's session.
@@ -35,7 +39,11 @@ $targets = @(
     @{ Out = 'inventory.ps1';      Parts = 'common', 'tools/inventory'
        Elevate = $false; Param = ''; Entry = 'Invoke-Inventory'; Description = 'Hardware / OS / software inventory to CSV' },
     @{ Out = 'clean-traces.ps1';   Parts = 'common', 'tools/traces'
-       Elevate = $false; Param = ''; Entry = 'Invoke-CleanTraces'; Description = 'Remove technician working traces (dry run by default)' }
+       Elevate = $false; Param = ''; Entry = 'Invoke-CleanTraces'; Description = 'Remove technician working traces (dry run by default)' },
+    @{ Out = 'winget.ps1';         Parts = 'common', 'winget'
+       Elevate = $false; Param = ''; Entry = 'Install-WinGet -Force'; Description = 'Install or repair WinGet (asheroto winget-install)' },
+    @{ Out = 'harden.ps1';         Parts = 'common', 'winget', 'tools/external'
+       Elevate = $true;  Param = ''; Entry = 'Install-HardenSystemSecurity'; Description = 'Install HotCakeX Harden System Security (MS Store)' }
 )
 
 function Read-Part([string]$Name) {

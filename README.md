@@ -35,6 +35,8 @@ Every tool is also published as a standalone script with the same shared helpers
 | Software Setup | `irm https://redist.geyer.zone \| iex` | `dist/software-setup.ps1` |
 | Inventory | (add a redirect if wanted) | `dist/inventory.ps1` |
 | Clean Traces | (add a redirect if wanted) | `dist/clean-traces.ps1` |
+| Install/repair WinGet | (add a redirect if wanted) | `dist/winget.ps1` |
+| Harden System Security | (add a redirect if wanted) | `dist/harden.ps1` |
 
 From a local checkout you can also run a tool directly: `.\dist\win-toolbox.ps1 -Tool update`
 (`activate`, `update`, `winget`, `software`, `office`, `winutil`, `winscript`, `adwcleaner`, `harden`).
