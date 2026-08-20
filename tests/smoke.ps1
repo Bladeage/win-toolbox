@@ -12,7 +12,7 @@ $ToolboxVersion = 'smoke'
 $SelfUrl = 'https://example.invalid/win-toolbox.ps1'
 
 # ---- load sources (same order as build.ps1) --------------------------------
-foreach ($part in 'common', 'winget', 'tools/adwcleaner', 'tools/windows-update', 'tools/software', 'tools/external', 'menu') {
+foreach ($part in 'common', 'winget', 'tools/adwcleaner', 'tools/windows-update', 'tools/software', 'tools/inventory', 'tools/traces', 'tools/external', 'menu') {
     . (Join-Path $root "src/$part.ps1")
 }
 
@@ -93,9 +93,9 @@ function Start-Sleep { param($Seconds) }   # no back-off waits in tests
 
 # ---- scenarios --------------------------------------------------------------
 Write-Host "`n[1] menu table"
-Assert ($MenuItems.Count -eq 9) 'menu has 9 items'
-Assert ((@($MenuItems | ForEach-Object Key | Sort-Object -Unique)).Count -eq 9) 'keys are unique'
-Assert ((@($MenuItems | ForEach-Object Id | Sort-Object -Unique)).Count -eq 9) 'ids are unique'
+Assert ($MenuItems.Count -eq 11) 'menu has 11 items'
+Assert ((@($MenuItems | ForEach-Object Key | Sort-Object -Unique)).Count -eq 11) 'keys are unique'
+Assert ((@($MenuItems | ForEach-Object Id | Sort-Object -Unique)).Count -eq 11) 'ids are unique'
 
 Write-Host "`n[2] AdwCleaner via menu key 8, then quit"
 Reset-Calls; $script:KeyQueue = @('8', 'q')
@@ -248,7 +248,7 @@ Show-Menu 6>$null
 Assert ((Get-Calls 'Wait-AnyKey').Count -eq 0) 'unknown key does not run a tool'
 Reset-Calls; $script:KeyQueue = @('G', 'q')       # grid -> mocked Out-GridView cancels -> back to text
 Show-Menu 6>$null
-Assert ((Get-Calls 'Out-GridView').Count -eq 9) 'grid view receives all 9 rows'
+Assert ((Get-Calls 'Out-GridView').Count -eq 11) 'grid view receives all 11 rows'
 Reset-Calls
 Show-Menu -Tool nope 6>$null
 Assert ((Get-Calls 'Wait-AnyKey').Count -eq 0) '-Tool with unknown id is rejected'
@@ -275,6 +275,99 @@ Add-SoftwareProfile -Catalog $cat -Name 'Runtimes'
 try { $null = Invoke-SoftwareInstall -Catalog $cat 6>$null } catch { $thrown++ }
 Assert ($thrown -eq 2) 'update + software install refuse without admin'
 $script:Admin = $true
+
+Write-Host "`n[15] Inventory: menu options + a full mocked run"
+Reset-Calls
+# mock CIM/registry/appx so a run works on Linux
+$script:InvOut = Join-Path ([IO.Path]::GetTempPath()) ('wt-inv-' + [guid]::NewGuid().ToString('N'))
+function Get-CimInstance { param($ClassName, $Namespace, $Filter, [Parameter(Position=0)]$Class)
+    $c = if ($ClassName) { $ClassName } else { $Class }
+    switch -Wildcard ($c) {
+        'Win32_ComputerSystem'  { return [pscustomobject]@{ Manufacturer='ACME'; Model='X1'; Domain='WG'; UserName='u'; SystemType='x64'; TotalPhysicalMemory=17179869184 } }
+        'Win32_BIOS'            { return [pscustomobject]@{ SerialNumber='SN123'; Manufacturer='ACME'; SMBIOSBIOSVersion='1.2'; Version='v'; ReleaseDate=$null } }
+        'Win32_ComputerSystemProduct' { return [pscustomobject]@{ UUID='uuid-1' } }
+        'Win32_SystemEnclosure' { return [pscustomobject]@{ SMBIOSAssetTag='AT1'; ChassisTypes=@(9) } }
+        'Win32_BaseBoard'       { return [pscustomobject]@{ Manufacturer='ACME'; Product='MB'; SerialNumber='MB1' } }
+        'Win32_OperatingSystem' { return [pscustomobject]@{ Caption='Windows 11 Pro'; Version='10.0.22631'; OSArchitecture='64-bit'; InstallDate=$null; LastBootUpTime=$null } }
+        'Win32_Processor'       { return @([pscustomobject]@{ Name='CPU X'; Manufacturer='ACME'; NumberOfCores=8; NumberOfLogicalProcessors=16; MaxClockSpeed=3200; SocketDesignation='S1'; L3CacheSize=16384; VirtualizationFirmwareEnabled=$true }) }
+        'Win32_PhysicalMemory'  { return @([pscustomobject]@{ Capacity=8589934592; SMBIOSMemoryType=34; MemoryType=0; DeviceLocator='DIMM0'; ConfiguredClockSpeed=4800; Speed=4800; Manufacturer='ACME'; PartNumber='P1'; SerialNumber='R1' }) }
+        'Win32_PhysicalMemoryArray' { return [pscustomobject]@{ MemoryDevices=2 } }
+        'Win32_DiskDrive'       { return @([pscustomobject]@{ Index=0; Model='SSD'; SerialNumber='D1'; Size=512110190592; InterfaceType='SCSI'; Partitions=3 }) }
+        'Win32_DiskPartition'   { return @() }
+        'Win32_LogicalDisk'     { return @([pscustomobject]@{ DeviceID='C:'; VolumeName='OS'; FileSystem='NTFS'; Size=512110190592; FreeSpace=123456789 }) }
+        'Win32_VideoController' { return @([pscustomobject]@{ Name='GPU X'; AdapterRAM=4294967296; DriverVersion='30.0'; CurrentHorizontalResolution=1920; CurrentVerticalResolution=1080 }) }
+        'Win32_NetworkAdapter'  { return @([pscustomobject]@{ NetConnectionID='Ethernet'; Name='NIC'; MACAddress='00:11:22:33:44:55'; NetEnabled=$true; Index=1; Speed=1000000000 }) }
+        'Win32_NetworkAdapterConfiguration' { return [pscustomobject]@{ IPAddress=@('10.0.0.2'); DefaultIPGateway=@('10.0.0.1') } }
+        'Win32_Battery'         { return $null }
+        'SoftwareLicensingProduct' { return $null }
+        default                 { return $null }
+    }
+}
+function Get-PhysicalDisk { @([pscustomobject]@{ DeviceId='0'; MediaType='SSD'; BusType='NVMe'; HealthStatus='Healthy' }) }
+function Get-ItemProperty { param($LiteralPath, $Path, $Name)
+    $p = if ($LiteralPath) { $LiteralPath } else { $Path }
+    if ("$p" -match 'CurrentVersion$') { return [pscustomobject]@{ DisplayVersion='23H2'; CurrentBuild='22631'; UBR='3007' } }
+    return $null
+}
+function Get-Culture { [pscustomobject]@{ Name='de-DE' } }
+function Get-AppxPackage { param([switch]$AllUsers, $ErrorAction) @() }
+function Get-HotFix { param($ErrorAction) @([pscustomobject]@{ HotFixID='KB5001'; Description='Update'; InstalledOn=(Get-Date '2026-01-01') }) }
+function Confirm-SecureBootUEFI { $true }
+function Get-ChildItem {
+    param([Parameter(ValueFromRemainingArguments)]$args)
+    # only the software-registry enumeration matters; return empty so no programs are added
+    return @()
+}
+$InventoryState.OutputMode = 'Custom'; $InventoryState.OutputPath = $script:InvOut; $InventoryState.Software = 'all'
+$res = Invoke-InventoryRun 6>$null
+Assert ($res.Detail -and (Test-Path $res.Detail)) 'inventory writes detail CSV'
+Assert ($res.Overview -and (Test-Path $res.Overview)) 'inventory appends overview CSV'
+Assert ($res.WriteErrors -eq 0) 'inventory run without write errors'
+$detail = Import-Csv $res.Detail -Delimiter ';'
+Assert (($detail | Where-Object { $_.Kategorie -eq 'System' -and $_.Feld -eq 'Seriennummer' }).Wert -eq 'SN123') 'German CSV schema (Kategorie;Feld;Wert) with real data'
+Assert (($detail[0].PSObject.Properties.Name -join ';') -eq 'Zeitstempel;Hostname;Kategorie;Feld;Wert') 'detail header stays German'
+$ov = Import-Csv $res.Overview -Delimiter ';'
+Assert ($ov[0].PSObject.Properties.Name -contains 'Akku_Gesundheit_Prozent') 'overview keeps German column names'
+# second run appends (overview grows), header-migration path
+$res2 = Invoke-InventoryRun 6>$null
+Assert (@(Import-Csv $res2.Overview -Delimiter ';').Count -eq 2) 'overview is appended on second run'
+Assert ((Get-InventoryOutputPath) -eq $script:InvOut) 'custom output path is used'
+Remove-Item $script:InvOut -Recurse -Force -ErrorAction SilentlyContinue
+# output mode toggles via menu
+Reset-Calls; $script:LineQueue = @('1', '2', 'q')
+$InventoryState.OutputMode = 'Custom'
+$null = Show-InventoryMenu 6>$null
+Assert ($InventoryState.OutputMode -eq 'CurrentDir') 'menu [1][2] switches output to current directory'
+
+Write-Host "`n[16] Clean Traces: dry run default, execute toggle, categories"
+Reset-Calls
+Assert ($TraceState.Execute -eq $false) 'dry run is the default'
+$script:RunMRUPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU'
+$script:RegStore = @{ $script:RunMRUPath = @{ a = '1' } }
+function Test-Path { param([Parameter(Position=0)]$Path, $LiteralPath) $p = if ($LiteralPath) { $LiteralPath } else { $Path }; return $script:RegStore.ContainsKey("$p") }
+function Get-Item { param($LiteralPath) [pscustomobject]@{ Property = @($script:RegStore["$LiteralPath"].Keys) } }
+function Get-ChildItem { param([Parameter(ValueFromRemainingArguments)]$args) @() }
+function Remove-ItemProperty { param($LiteralPath, $Name, [switch]$Force, $ErrorAction) $script:RegStore["$LiteralPath"].Remove($Name) }
+function Get-PSReadLineOption { [pscustomobject]@{ HistorySavePath = 'C:\nope\history.txt' } }
+# dry run: nothing removed
+$TraceState.History = $false; $TraceState.Dialogs = $true; $TraceState.Recent = $false; $TraceState.Temp = $false; $TraceState.RecycleBin = $false
+$TraceState.Execute = $false
+$c = Invoke-TracesRun 6>$null
+Assert ($c.Removed -eq 0 -and $c.Skipped -ge 1) 'dry run removes nothing but counts would-be removals'
+Assert ($script:RegStore[$script:RunMRUPath].Count -eq 1) 'dry run leaves the registry untouched'
+# clear-regkey targets the real path in a real run
+$hit = $false
+function Clear-RegKey { param($Path, $What) if ($Path -match 'RunMRU') { $script:hitRunMRU = $true } }
+$script:hitRunMRU = $false
+Clear-Dialogs 6>$null
+Assert ($script:hitRunMRU) 'Clean Traces clears the RunMRU key'
+# menu: mode toggle guarded by confirmation
+Reset-Calls
+function Confirm-Action { param($Question) return $true }
+$script:LineQueue = @('m', 'q')
+$null = Show-TracesMenu 6>$null
+Assert ($TraceState.Execute -eq $true) '[m] with confirmation switches to EXECUTE'
+$TraceState.Execute = $false
 
 Write-Host "`n[15] dist files"
 foreach ($f in Get-ChildItem (Join-Path $root 'dist') -Filter *.ps1) {

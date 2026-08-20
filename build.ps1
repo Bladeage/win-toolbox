@@ -24,14 +24,18 @@ $root = $PSScriptRoot
 $version = (Get-Content (Join-Path $root 'VERSION') -Raw).Trim()
 
 $targets = @(
-    @{ Out = 'win-toolbox.ps1';    Parts = 'common', 'winget', 'tools/adwcleaner', 'tools/windows-update', 'tools/software', 'tools/external', 'menu'
+    @{ Out = 'win-toolbox.ps1';    Parts = 'common', 'winget', 'tools/adwcleaner', 'tools/windows-update', 'tools/software', 'tools/inventory', 'tools/traces', 'tools/external', 'menu'
        Elevate = $true;  Param = 'param([string]$Tool)'; Entry = 'Show-Menu -Tool $Tool'; Description = 'All-in-one menu' },
     @{ Out = 'adwcleaner.ps1';     Parts = 'common', 'tools/adwcleaner'
        Elevate = $false; Param = ''; Entry = 'Invoke-AdwCleaner'; Description = 'Download, run and remove Malwarebytes AdwCleaner' },
     @{ Out = 'windows-update.ps1'; Parts = 'common', 'tools/windows-update'
        Elevate = $true;  Param = ''; Entry = 'Invoke-WindowsUpdate'; Description = 'Install all pending Windows updates (PSWindowsUpdate)' },
     @{ Out = 'software-setup.ps1'; Parts = 'common', 'winget', 'tools/software'
-       Elevate = $true;  Param = ''; Entry = 'Invoke-SoftwareSetup'; Description = 'Software Setup - profiles and catalog via winget' }
+       Elevate = $true;  Param = ''; Entry = 'Invoke-SoftwareSetup'; Description = 'Software Setup - profiles and catalog via winget' },
+    @{ Out = 'inventory.ps1';      Parts = 'common', 'tools/inventory'
+       Elevate = $false; Param = ''; Entry = 'Invoke-Inventory'; Description = 'Hardware / OS / software inventory to CSV' },
+    @{ Out = 'clean-traces.ps1';   Parts = 'common', 'tools/traces'
+       Elevate = $false; Param = ''; Entry = 'Invoke-CleanTraces'; Description = 'Remove technician working traces (dry run by default)' }
 )
 
 function Read-Part([string]$Name) {

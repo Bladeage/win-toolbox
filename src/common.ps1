@@ -29,6 +29,12 @@ function Write-Ok   { param([string]$Text) Write-Host "   $Text" -ForegroundColo
 function Write-Warn { param([string]$Text) Write-Host "   $Text" -ForegroundColor Yellow; Write-LogLine "WARN $Text" }
 function Write-Fail { param([string]$Text) Write-Host "   $Text" -ForegroundColor Red;    Write-LogLine "FAIL $Text" }
 
+function Read-MenuLine {
+    # Line input seam - tests/smoke.ps1 replaces this to feed scripted input.
+    param([string]$Prompt = '  Input')
+    return (Read-Host $Prompt).Trim()
+}
+
 function Wait-AnyKey {
     param([string]$Prompt = 'Press any key to continue...')
     Write-Host ''

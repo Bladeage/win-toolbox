@@ -10,7 +10,11 @@ Betriebsmodus: **Ship-Loop** (PR-Flow, CI grün, Merge → Raw-URLs sind sofort 
 - `src/winget.ps1` — robuste winget-Engine (Port aus `Install-Software.ps1` vom Techniker-Stick): winget.exe-Suche,
   Timeout+taskkill, Scope-Varianten, Retries, Verifikation per `winget list`. Nur in toolbox/software-setup eingebaut.
 - `src/tools/*.ps1` — je Tool eine Funktion. `external.ps1` = dünne `irm|iex`-Wrapper für Fremdskripte.
-  `software.ps1` = Software Setup (Profile/Katalog/Suche/Auswahl speichern+laden/Dry-Run), Zeileneingabe-Naht `Read-MenuLine`.
+  `software.ps1` = Software Setup (Profile/Katalog/Suche/Auswahl speichern+laden/Dry-Run).
+  `inventory.ps1` = Inventar (englische UI, **CSV-Schema bleibt deutsch** — kompatibel zu inventar-linux.sh; Ausgabeort
+  Desktop/CWD/FolderBrowserDialog). `traces.ps1` = Spuren entfernen (Dry-Run-Default, `[m]` → Execute mit Rückfrage).
+- Eingabe-Nähte für Tests: `Read-MenuKey` (Einzeltaste, in menu.ps1) und `Read-MenuLine` (Zeile, in common.ps1) —
+  tests/smoke.ps1 ersetzt beide. Logging heißt `Write-LogLine` (nicht Write-Log, das ist ein PS-Cmdlet).
 - `catalog/software.json` — **generiert** durch `build-catalog.ps1` (Runtimes-Sektion + Profile dort gepflegt, Rest aus
   winutil `applications.json`), ASCII-only (EscapeNonAscii), committet. `build.ps1` bettet es als `$CatalogJson`-Here-String ein.
 - Funktionen, die Collections zurückgeben: `return ,$x` (sonst entrollt PowerShell — HashSet-Falle ist schon passiert).

@@ -8,12 +8,6 @@
 
 $SoftwareState = @{ Catalog = $null; Selected = $null; Upgrade = $false; DryRun = $false }
 
-function Read-MenuLine {
-    # Line input seam (replaced by tests/smoke.ps1).
-    param([string]$Prompt = '  Input')
-    return (Read-Host $Prompt).Trim()
-}
-
 function Get-SoftwareCatalog {
     if ($SoftwareState.Catalog) { return $SoftwareState.Catalog }
     $json = $CatalogJson

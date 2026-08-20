@@ -11,7 +11,9 @@ $MenuItems = @(
     @{ Key = '6'; Id = 'winutil';    Name = 'WinUtil';                    Description = "Chris Titus Tech's Windows utility";            Action = { Invoke-WinUtil } },
     @{ Key = '7'; Id = 'winscript';  Name = 'WinScript';                  Description = 'flick9000/winscript - debloat & privacy';        Action = { Invoke-WinScript } },
     @{ Key = '8'; Id = 'adwcleaner'; Name = 'AdwCleaner';                 Description = 'Malwarebytes adware cleaner';                    Action = { Invoke-AdwCleaner } },
-    @{ Key = '9'; Id = 'harden';     Name = 'Harden System Security';     Description = 'HotCakeX hardening app (Win 11 22H2+, MS Store)';  Action = { Install-HardenSystemSecurity } }
+    @{ Key = '9'; Id = 'harden';     Name = 'Harden System Security';     Description = 'HotCakeX hardening app (Win 11 22H2+, MS Store)';  Action = { Install-HardenSystemSecurity } },
+    @{ Key = 'i'; Id = 'inventory';  Name = 'Inventory';                  Description = 'Hardware / OS / software inventory to CSV (technician tool)'; Action = { Invoke-Inventory } },
+    @{ Key = 't'; Id = 'traces';     Name = 'Clean Traces';               Description = 'Remove technician working traces (dry run by default)'; Action = { Invoke-CleanTraces } }
 )
 
 function Show-Banner {
