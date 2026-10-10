@@ -1,7 +1,8 @@
 # win-toolbox — Projekt-CLAUDE.md
 
 PowerShell-Skripte für Windows, ausgeliefert als `irm <url> | iex`-Einzeiler. Quelle ist
-**GitHub `Bladeage/win-toolbox` (öffentlich, secret-frei)**; `git.geyer.zone` spiegelt nur.
+**GitHub `Bladeage/win-toolbox` (öffentlich, secret-frei)**. Das Repo ist öffentlich: keine internen
+Hostnamen, Pfade oder Zugangswege hier eintragen, die gehören in `CLAUDE.local.md` (nicht eingecheckt).
 Betriebsmodus: **Ship-Loop** (PR-Flow, CI grün, Merge → Raw-URLs sind sofort live).
 
 ## Aufbau
@@ -24,27 +25,24 @@ Betriebsmodus: **Ship-Loop** (PR-Flow, CI grün, Merge → Raw-URLs sind sofort 
 - `VERSION` — bei Release bumpen; landet im Banner/Header.
 
 ## Workflow
-1. `src/` ändern → `./build.ps1` (lokal `pwsh` 7.6 vorhanden) → `dist/` mitcommitten.
-2. Lint lokal: `Invoke-ScriptAnalyzer -Path ./src -Recurse -Settings ./PSScriptAnalyzerSettings.psd1`
-   (PSScriptAnalyzer ist im User-Scope installiert).
+1. `src/` ändern → `./build.ps1` (braucht `pwsh`) → `dist/` mitcommitten.
+2. Lint lokal: `Invoke-ScriptAnalyzer -Path ./src -Recurse -Settings ./PSScriptAnalyzerSettings.psd1`.
 3. `pwsh ./tests/smoke.ps1` — Rauchtest: fährt das Menü mit Tasten-Queue durch, alle Tools mit gemocktem
    winget/Start-Process/PSWindowsUpdate/Elevation (`Read-MenuKey` ist die Test-Naht). Läuft in CI auf Ubuntu
-   **und** echtem PS 5.1. Fabian arbeitet auf Linux — **dieser Test ist der Rauchtest**, es gibt keine Windows-Kiste.
+   **und** echtem PS 5.1. Entwickelt wird auf Linux, **dieser Test ist der Rauchtest**, es gibt keine Windows-Testmaschine.
 4. Branch → PR → CI (lint, build, parse PS 7 + 5.1, dist-aktuell-Check, smoke ×2) → Merge.
 5. Nicht durch Mocks abgedeckt (Restrisiko): echtes winget-Verhalten, UAC-Dialog, Out-GridView-Optik,
    Verhalten der Fremdskripte (MAS, WinUtil, …).
+6. Release: `VERSION` bumpen, Eintrag in `CHANGELOG.md`. README ist englisch und öffentlich (keine Interna).
 
 ## Auslieferung
-- Kurz-URLs `menu.` / `adwcleaner.` / `update.` / `redist.geyer.zone` (redist → `dist/software-setup.ps1`) (+ `activate.`/`office.`/`winutil.`/`winscript.`
-  direkt auf Upstream) sind **301-Redirection-Hosts im Nginx Proxy Manager auf `hp`** (Cloudflare nur davor;
-  Ändern = NPM-UI oder -API auf hp, SSH braucht FIDO-Touch → Fabian) → Ziel:
-  `https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/<datei>`.
+- Kurz-URLs `menu.` / `adwcleaner.` / `update.` / `redist.geyer.zone` sind 301-Redirects auf
+  `https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/<datei>`
+  (menu → `win-toolbox.ps1`, update → `windows-update.ps1`, redist → `software-setup.ps1`).
+  `activate.`/`office.`/`winutil.`/`winscript.` zeigen direkt auf Upstream.
+  Wo die Redirects gepflegt werden, steht in `CLAUDE.local.md`.
 - Merge auf `main` = Deploy. Kein weiterer Schritt. Deshalb: nie direkt auf `main` committen.
 
 ## Herkunft
-Powershell-Menu, Powershell-Windows-Update, AdwCleaner-Script (Gitea) und der GitHub-Fork
-`Bladeage/PC-Gaming-Redists` (Batch-AIO von harryeffinpotter/skrimix) sind hier aufgegangen.
-`winscript` auf Gitea ist ein reiner Upstream-Mirror (flick9000) — kein eigener Code.
-**Techniker-Stick** (`~/Downloads/stick/`, Heimat teils `arbeitsplatz-werkzeuge`, privat): `Software-Setup/` ist hier
-als Software Setup (Englisch) aufgegangen; `Inventarisierung/` und `Spuren-Entfernen/` folgen als Menüpunkte
-(Fabians Entscheidung 2026-08-20: alles ins Menü, erstmal Englisch, kein Stick-Launcher).
+Siehe README, Abschnitt *Credits*. Inventory und Clean Traces stammen aus einer Techniker-Sammlung,
+Software Setup ersetzt den alten PC-Gaming-Redists-Installer. Details zur Herkunft in `CLAUDE.local.md`.

@@ -1,0 +1,3 @@
+# Generated files: keep their bytes as built (CRLF, ASCII) and fold them in GitHub diffs.
+dist/*.ps1            -text linguist-generated=true
+catalog/software.json linguist-generated=true

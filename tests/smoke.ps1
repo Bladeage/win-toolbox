@@ -84,6 +84,7 @@ function Install-PackageProvider { param($Name, $MinimumVersion, [switch]$Force)
 function Get-Module { param($Name, [switch]$ListAvailable) return $null }
 function Install-Module { param($Name, [switch]$Force) Record 'Install-Module' $Name }
 function Import-Module { param($Name) Record 'Import-Module' $Name }
+function Set-ExecutionPolicy { param($ExecutionPolicy, $Scope, [switch]$Force) Record 'Set-ExecutionPolicy' "$Scope $ExecutionPolicy" }
 function Get-WindowsUpdate {
     param([switch]$Install, [switch]$AcceptAll, [switch]$AutoReboot, [switch]$IgnoreReboot)
     Record 'Get-WindowsUpdate' @{ Install = $Install.IsPresent; AcceptAll = $AcceptAll.IsPresent; AutoReboot = $AutoReboot.IsPresent; IgnoreReboot = $IgnoreReboot.IsPresent }
@@ -228,6 +229,7 @@ $u = Get-Calls 'Get-WindowsUpdate'
 Assert ($u.Count -eq 2) 'search + install'
 Assert ($u[1].Install -and $u[1].AcceptAll -and $u[1].AutoReboot) 'installs with -AcceptAll -AutoReboot'
 Assert ((Get-Calls 'Install-Module') -contains 'PSWindowsUpdate') 'installs PSWindowsUpdate when missing'
+Assert ((Get-Calls 'Set-ExecutionPolicy') -contains 'Process Bypass') 'relaxes execution policy for this process only'
 Reset-Calls
 Invoke-WindowsUpdate -NoReboot 6>$null
 Assert ((Get-Calls 'Get-WindowsUpdate')[1].IgnoreReboot) '-NoReboot -> -IgnoreReboot'

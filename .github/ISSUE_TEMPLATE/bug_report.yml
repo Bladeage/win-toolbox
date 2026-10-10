@@ -1,0 +1,72 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please do not post security problems here, see SECURITY.md.
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      options:
+        - Menu / start
+        - Activate Windows / Office (MAS)
+        - Windows Update
+        - Install / repair WinGet
+        - Software Setup
+        - Office Tool Plus
+        - WinUtil
+        - WinScript
+        - AdwCleaner
+        - Harden System Security
+        - Inventory
+        - Clean Traces
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: irm https://menu.geyer.zone | iex
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Paste the exact message. A screenshot also helps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: Run `winver`, e.g. "Windows 11 25H2 (26200.1234)"
+    validations:
+      required: true
+  - type: input
+    id: powershell
+    attributes:
+      label: PowerShell version
+      description: Output of `$PSVersionTable.PSVersion`
+    validations:
+      required: true
+  - type: dropdown
+    id: admin
+    attributes:
+      label: Started as administrator?
+      options:
+        - "No (menu asked for UAC)"
+        - "Yes (opened PowerShell as admin)"
+        - "Not sure"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: If the tool wrote one, attach the log from %TEMP%\win-toolbox\ (remove anything private first).

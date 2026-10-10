@@ -31,6 +31,14 @@ function Invoke-WindowsUpdate {
         Write-Step 'Installing PSWindowsUpdate from the PowerShell Gallery...'
         Install-Module -Name PSWindowsUpdate -Force
     }
+    # An admin shell opened directly (no self-elevation with -ExecutionPolicy Bypass) keeps the
+    # client default 'Restricted', which blocks loading the module's script and format files.
+    # Process scope only: nothing is changed on the machine.
+    try {
+        Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+    } catch {
+        Write-Warn "Could not relax the execution policy for this session ($_) - importing anyway."
+    }
     Import-Module PSWindowsUpdate
 
     Write-Step 'Searching for updates...'
