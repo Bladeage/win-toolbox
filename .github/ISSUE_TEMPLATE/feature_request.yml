@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest a new tool or an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What should win-toolbox do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it useful?
+  - type: input
+    id: upstream
+    attributes:
+      label: Upstream project (for third-party tools)
+      description: Link to the project, if the idea is to add an existing tool to the menu.

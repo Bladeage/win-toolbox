@@ -1,10 +1,19 @@
 # win-toolbox
 
-One-liner Windows helper scripts, bundled into a single `irm | iex` menu.
+[![CI](https://github.com/Bladeage/win-toolbox/actions/workflows/ci.yml/badge.svg)](https://github.com/Bladeage/win-toolbox/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![PowerShell 5.1 | 7](https://img.shields.io/badge/PowerShell-5.1%20%7C%207-5391FE?logo=powershell&logoColor=white)
+
+Windows helper scripts in one menu. One line in PowerShell, no install, nothing left behind.
 
 ```powershell
 irm https://menu.geyer.zone | iex
 ```
+
+Open **PowerShell** (no admin needed), paste the line, pick a tool. The menu asks for
+administrator rights (UAC) only when a tool needs them and then re-launches itself.
+
+## Tools
 
 | Key | Tool | What it does |
 |---|---|---|
@@ -17,36 +26,61 @@ irm https://menu.geyer.zone | iex
 | 7 | WinScript | [flick9000/winscript](https://github.com/flick9000/winscript) |
 | 8 | AdwCleaner | Downloads, runs and removes [Malwarebytes AdwCleaner](https://www.malwarebytes.com/adwcleaner) |
 | 9 | Harden System Security | [HotCakeX's hardening app](https://github.com/HotCakeX/Harden-Windows-Security/wiki/Harden-System-Security) from the Microsoft Store (Windows 11 22H2+) |
-| i | Inventory | Hardware / BIOS / OS / CPU / RAM / disks / GPU / monitors / network / battery + installed software into CSV (technician tool; German CSV schema shared with the Linux twin) |
-| t | Clean Traces | Remove the technician's working traces (shell history, Run/address-bar/Recent, temp, recycle bin) — **dry run by default** |
+| i | Inventory | Hardware / BIOS / OS / CPU / RAM / disks / GPU / monitors / network / battery + installed software into CSV (technician tool, German CSV column names) |
+| t | Clean Traces | Remove the technician's working traces (shell history, Run/address-bar/Recent, temp, recycle bin), **dry run by default** |
 
 `G` switches to an `Out-GridView` picker, `Q`/`Esc` quits. The menu asks for elevation (UAC) when
 needed and re-launches itself. Works in Windows PowerShell 5.1 and PowerShell 7.
 
+`G` switches to an `Out-GridView` picker, `Q`/`Esc` quits.
+
+## Before you run it
+
+`irm <url> | iex` downloads a script and runs it right away. Please read what you run:
+
+- **Look first.** `irm https://menu.geyer.zone` without `| iex` prints the script instead of
+  running it. Every script is also readable in [`dist/`](dist/).
+- **Third-party tools run their own code.** Keys 1, 3, 5, 6 and 7 fetch and run scripts from
+  their upstream projects (links in the table). The menu shows the URL before it runs them.
+  Those projects are not part of win-toolbox and keep their own licenses. You are responsible
+  for using them in line with your licenses and local law.
+- **Some tools change the system.** Windows Update can reboot on its own, Software Setup
+  installs software, Clean Traces deletes files (dry run by default).
+
+## Requirements
+
+- Windows 10 or Windows 11
+- Windows PowerShell 5.1 (built in) or PowerShell 7
+- Internet access
+- Harden System Security needs Windows 11 22H2 or newer
+
 ## Single tools
 
-Every tool is also published as a standalone script with the same shared helpers baked in:
+Every tool is also published as a standalone script with the same shared helpers baked in.
 
-| Script | Short URL | Raw |
-|---|---|---|
-| All-in-one menu | `irm https://menu.geyer.zone \| iex` | `dist/win-toolbox.ps1` |
-| AdwCleaner | `irm https://adwcleaner.geyer.zone \| iex` | `dist/adwcleaner.ps1` |
-| Windows Update | `irm https://update.geyer.zone \| iex` | `dist/windows-update.ps1` |
-| Software Setup | `irm https://redist.geyer.zone \| iex` | `dist/software-setup.ps1` |
-| Inventory | (add a redirect if wanted) | `dist/inventory.ps1` |
-| Clean Traces | (add a redirect if wanted) | `dist/clean-traces.ps1` |
-| Install/repair WinGet | (add a redirect if wanted) | `dist/winget.ps1` |
-| Harden System Security | (add a redirect if wanted) | `dist/harden.ps1` |
+| Tool | Command |
+|---|---|
+| All-in-one menu | `irm https://menu.geyer.zone \| iex` |
+| AdwCleaner | `irm https://adwcleaner.geyer.zone \| iex` |
+| Windows Update | `irm https://update.geyer.zone \| iex` |
+| Software Setup | `irm https://redist.geyer.zone \| iex` |
+| Inventory | `irm https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/inventory.ps1 \| iex` |
+| Clean Traces | `irm https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/clean-traces.ps1 \| iex` |
+| Install / repair WinGet | `irm https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/winget.ps1 \| iex` |
+| Harden System Security | `irm https://raw.githubusercontent.com/Bladeage/win-toolbox/main/dist/harden.ps1 \| iex` |
 
-From a local checkout you can also run a tool directly: `.\dist\win-toolbox.ps1 -Tool update`
-(`activate`, `update`, `winget`, `software`, `office`, `winutil`, `winscript`, `adwcleaner`, `harden`).
+The short URLs redirect to the raw files in [`dist/`](dist/) on the `main` branch.
+
+From a local copy you can start a tool directly: `.\dist\win-toolbox.ps1 -Tool update`
+(`activate`, `update`, `winget`, `software`, `office`, `winutil`, `winscript`, `adwcleaner`,
+`harden`, `inventory`, `traces`).
 
 ### Software Setup
 
-The successor of the old PC-Gaming-Redists batch installer, merged with the stick-based
-`Install-Software.ps1`: instead of parsing `winget search` output it works from an explicit
-catalog (`catalog/software.json`, generated by `build-catalog.ps1` from the *Runtimes* section
-maintained here plus [ChrisTitusTech/winutil](https://github.com/ChrisTitusTech/winutil)'s app list).
+Software Setup installs software with winget. Instead of parsing `winget search` output it
+works from an explicit catalog (`catalog/software.json`). `build-catalog.ps1` generates it from
+the *Runtimes* section maintained here plus the app list of
+[ChrisTitusTech/winutil](https://github.com/ChrisTitusTech/winutil).
 
 | Profile | Contents |
 |---|---|
@@ -55,9 +89,9 @@ maintained here plus [ChrisTitusTech/winutil](https://github.com/ChrisTitusTech/
 | Gaming | Standard + Java 21/25 (Temurin), Steam, TeamSpeak, Discord, HWiNFO, MSI Afterburner, CrystalDiskInfo, GPU-Z, CPU-Z, OBS, K-Lite, Parsec |
 | Technician | Diagnostics, disks, drivers, uninstallers, network tools (WizTree, Autoruns, DDU, Rufus, Ventoy, Revo, PuTTY, WinSCP, gsudo, …) |
 
-Profiles are additive; afterwards every category can be browsed and single packages toggled
-(`1 4 7-9`, `a` all, `n` none, `i 3` info). `w` saves the selection to `Documents\win-toolbox\*.json`,
-`l` loads one — from a file or a URL, so the same set can be applied on every machine.
+Profiles are additive. Afterwards you can browse every category and toggle single packages
+(`1 4 7-9`, `a` all, `n` none, `i 3` info). `w` saves the selection to `Documents\win-toolbox\*.json`.
+`l` loads a selection from a file or a URL, so the same set can be applied on every machine.
 
 The install engine finds `winget.exe` even when an elevated shell lacks it in `PATH`, installs
 WinGet when missing, runs every package with a timeout (kills the whole installer tree on
@@ -67,15 +101,41 @@ result by the real installation state rather than the exit code. Each run writes
 
 ### Inventory & Clean Traces (technician tools)
 
-Ported from the field technician USB stick (successors of `Inventar-Windows.ps1` /
-`Spuren-Entfernen.ps1`), with English menus. **Inventory** writes three CSVs — a long-format
-detail file per machine plus an appended overview and software list — in a **German column
-schema on purpose**, so the files stay compatible with the Linux twin (`inventar-linux.sh`)
-and existing collections; only the UI is English. Output goes to the Desktop, the current
-directory, or a folder you pick (`FolderBrowserDialog`). It runs without admin (some fields
-need elevation). **Clean Traces** clears the current user's shell history, Run/address-bar/Recent
-lists, temp files and optionally the recycle bin — **dry run by default**, `[m]` switches to
+Two tools for field technicians, with English menus.
+
+**Inventory** writes three CSV files: a long-format detail file per machine, plus an overview
+and a software list that grow with every run. The column names are **German on purpose**, so
+the files stay compatible with a companion Linux script and existing collections. Output goes
+to the Desktop, the current directory, or a folder you pick. It runs without admin rights; some
+fields need elevation.
+
+**Clean Traces** clears the current user's shell history, Run/address-bar/Recent lists, temp
+files and optionally the recycle bin. It runs as a **dry run by default**. `[m]` switches to
 Execute after a confirmation. It never touches Windows event logs or USB device history.
+
+## Troubleshooting
+
+**"Running scripts is disabled on this system"**
+`irm | iex` is not affected by the execution policy. The message appears when you run a
+downloaded `.ps1` file. Start it like this:
+`powershell -ExecutionPolicy Bypass -File .\win-toolbox.ps1`
+
+**"Security Warning: Script Execution Risk"** (Windows PowerShell 5.1)
+Windows shows this since the December 2025 updates when a script calls `Invoke-WebRequest`
+without `-UseBasicParsing` ([KB5074596](https://support.microsoft.com/kb/5074596)).
+win-toolbox always uses `-UseBasicParsing`. If the warning appears, it most likely comes from
+a third-party tool started from the menu.
+
+**Antivirus blocks the command**
+Some antivirus products flag `irm | iex` one-liners or individual third-party tools.
+Check *Windows Security → Protection history* to see what was blocked.
+
+**Logs**
+Tools that change the system write a log to `%TEMP%\win-toolbox\`.
+
+Found a bug? [Open an issue](https://github.com/Bladeage/win-toolbox/issues/new/choose) and
+include the exact message, your Windows version and the PowerShell version
+(`$PSVersionTable.PSVersion`).
 
 ## How it is built
 
@@ -89,23 +149,28 @@ build.ps1               concatenates src/ (+ embeds the catalog) into the self-c
 VERSION                 version string baked into dist/ (bump on release)
 ```
 
-`dist/` is committed on purpose — the short URLs (Nginx Proxy Manager 301 redirects) point straight at the raw files. After editing
-`src/`, run `./build.ps1` (needs `pwsh`, works on Linux/macOS/Windows) and commit the result.
+`dist/` is committed on purpose: the short URLs point straight at the raw files, so a merge to
+`main` is a release. After editing `src/`, run `./build.ps1` (needs `pwsh`, works on
+Linux/macOS/Windows) and commit the result.
+
 CI lints `src/` with PSScriptAnalyzer (PS 5.1 + 7 syntax), rebuilds, parses `dist/` with both
 PowerShell 7 and Windows PowerShell 5.1, fails if `dist/` is stale, and runs `tests/smoke.ps1`
-on both — a scripted walk through the menu and every tool with winget, Start-Process,
+on both: a scripted walk through the menu and every tool with winget, Start-Process,
 PSWindowsUpdate and the UAC elevation mocked. Run it locally with `pwsh ./tests/smoke.ps1`.
 
 Each dist file is wrapped in `& { ... }`, so running it via `irm | iex` leaves no functions,
 variables or `$ErrorActionPreference` changes behind in your shell.
 
-## History
+Changes are listed in the [changelog](CHANGELOG.md).
 
-Merges and replaces these repositories: Powershell-Menu, Powershell-Windows-Update,
-AdwCleaner-Script, the PC-Gaming-Redists fork (original AIO batch script by
-[harryeffinpotter](https://github.com/harryeffinpotter) & [skrimix](https://github.com/skrimix))
-and the stick-based Software-Setup (`Install-Software.ps1`) it was succeeded by.
+## Credits
+
+win-toolbox merges and replaces several older scripts: Powershell-Menu,
+Powershell-Windows-Update, AdwCleaner-Script and a fork of the PC-Gaming-Redists AIO batch
+script by [harryeffinpotter](https://github.com/harryeffinpotter) and
+[skrimix](https://github.com/skrimix). The Software Setup catalog builds on
+[ChrisTitusTech/winutil](https://github.com/ChrisTitusTech/winutil).
 
 ## License
 
-MIT — third-party scripts invoked by the menu keep their own licenses.
+[MIT](LICENSE). Third-party scripts started from the menu keep their own licenses.
